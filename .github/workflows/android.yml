@@ -1,0 +1,60 @@
+name: Build Android APK
+
+# Builds an installable APK. Run it from the GitHub mobile app or the website:
+# Actions -> "Build Android APK" -> Run workflow. The APK appears under the
+# run's "Artifacts" section when it finishes (usually 4-6 minutes).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/xchat-app.html"
+      - "public/**"
+      - "android/**"
+      - "scripts/build-mobile.mjs"
+      - "capacitor.config.ts"
+      - ".github/workflows/android.yml"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the offline app bundle
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/build-mobile.mjs
+
+      - name: Copy the bundle into the Android project
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: xchat-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

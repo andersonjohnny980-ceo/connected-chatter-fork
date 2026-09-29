@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">XChat</string>
+    <string name="title_activity_main">XChat</string>
+    <string name="package_name">com.horizon.xchat</string>
+    <string name="custom_url_scheme">com.horizon.xchat</string>
+</resources>

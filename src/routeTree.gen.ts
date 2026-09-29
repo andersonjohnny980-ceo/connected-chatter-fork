@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppDothtmlRouteImport } from './routes/app[.]html'
+import { Route as ApiPushRouteImport } from './routes/api/push'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDothtmlRoute = AppDothtmlRouteImport.update({
+  id: '/app.html',
+  path: '/app.html',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPushRoute = ApiPushRouteImport.update({
+  id: '/api/push',
+  path: '/api/push',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app.html': typeof AppDothtmlRoute
+  '/api/push': typeof ApiPushRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app.html': typeof AppDothtmlRoute
+  '/api/push': typeof ApiPushRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app.html': typeof AppDothtmlRoute
+  '/api/push': typeof ApiPushRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/app.html' | '/api/push'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/app.html' | '/api/push'
+  id: '__root__' | '/' | '/app.html' | '/api/push'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppDothtmlRoute: typeof AppDothtmlRoute
+  ApiPushRoute: typeof ApiPushRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app.html': {
+      id: '/app.html'
+      path: '/app.html'
+      fullPath: '/app.html'
+      preLoaderRoute: typeof AppDothtmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/push': {
+      id: '/api/push'
+      path: '/api/push'
+      fullPath: '/api/push'
+      preLoaderRoute: typeof ApiPushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppDothtmlRoute: AppDothtmlRoute,
+  ApiPushRoute: ApiPushRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

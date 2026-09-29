@@ -142,3 +142,6 @@
     color: var(--color-foreground);
   }
 }
+
+/* Exhaustive fallback to ensure Lovable is gone */
+#lov-badge-root,div[style*="z-index: 999999"],div[style*="z-index:999999"],a[href*="lovable.dev"],iframe[src*="lovable.dev"],[class*="lovable-badge" i],[id*="lovable-badge" i]{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
