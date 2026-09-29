@@ -1,0 +1,4 @@
+- [ ] Import the existing X-Chat app source and retain its original backend connection without copying private credentials.
+- [ ] Correct offline chat retention, last-seen presentation, and message bubble appearance.
+- [ ] Make the web app installable and safely offline-capable for PWABuilder, Median, and future Android builds.
+- [ ] Wire secure OneSignal settings and verify what can be tested locally; identify external deployment blockers.
