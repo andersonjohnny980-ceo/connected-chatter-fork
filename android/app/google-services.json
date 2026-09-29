@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "163057858562",
+    "project_id": "horizon-technologies-4215a",
+    "storage_bucket": "horizon-technologies-4215a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:163057858562:android:a85c1700b9b6fd23cc4f1b",
+        "android_client_info": {
+          "package_name": "com.horizon.xchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPPimpZWkAtKnkG9k58YKUIsFnhTqlcho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:163057858562:android:60d89a1150e70454cc4f1b",
+        "android_client_info": {
+          "package_name": "com.horizontech.xchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPPimpZWkAtKnkG9k58YKUIsFnhTqlcho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

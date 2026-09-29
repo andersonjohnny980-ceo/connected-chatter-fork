@@ -1,24 +1,55 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { registerAppShellWorker } from "@/lib/pwa-registration";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "XChat Messenger — Private Real-Time Chat" },
+      {
+        name: "description",
+        content:
+          "XChat Messenger: private one-to-one chat with photos, voice notes, read receipts and live presence. Install it and use it like a phone app.",
+      },
+      { property: "og:title", content: "XChat Messenger" },
+      {
+        property: "og:description",
+        content:
+          "Private one-to-one chat with photos, voice notes, read receipts and live presence.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#0b1017" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "XChat" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no",
+      },
+    ],
+    links: [
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/icons/xchat-192.png" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  useEffect(() => { void registerAppShellWorker(); }, []);
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
+    <main className="h-dvh w-full overflow-hidden">
+      <h1 className="sr-only">X-Chat Messenger</h1>
+      <iframe
+        src="/app.html"
+        title="XChat Messenger"
+        className="h-full w-full border-0"
+        allow="microphone *; camera *; autoplay *; display-capture *; clipboard-write; fullscreen"
+        allowFullScreen
       />
-    </div>
+    </main>
   );
 }

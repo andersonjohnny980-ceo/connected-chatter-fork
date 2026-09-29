@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Preserve X-Chat's imported `/app.html` shell and existing external backend; replacing it would disconnect real conversations.
+- Serve public backend configuration from a source-controlled publishable configuration module, never commit private OneSignal credentials.
+- Maintain one generated app-shell worker at `/sw.js` and a separate OneSignal worker scope to avoid push/cache interception conflicts.
