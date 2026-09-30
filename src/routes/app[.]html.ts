@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import shell from "../xchat-app.html?raw";
+import { backendUrl, backendPublishableKey } from "../lib/backend-config";
 
 /**
  * Serves the X-Chat app shell with the backend URL / publishable key injected at
@@ -9,11 +10,11 @@ export const Route = createFileRoute("/app.html")({
   server: {
     handlers: {
       GET: async () => {
-        const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"] ?? "";
+        const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"] ?? backendUrl;
         const key =
           process.env["SUPABASE_PUBLISHABLE_KEY"] ??
           process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
-          "";
+          backendPublishableKey;
 
         const configScript = `<script>window.__XCHAT_CONFIG__=${JSON.stringify({ url, key }).replaceAll("<", "\\u003c")};</script>`;
         const html = shell

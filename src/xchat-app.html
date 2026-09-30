@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <meta name="theme-color" content="#0b1017" id="tcolor" />
-<link rel="manifest" href="/manifest.json" />
+<link rel="manifest" href="/manifest.webmanifest" />
 <link rel="apple-touch-icon" href="/icons/xchat-192.png" />
 <title>XChat Messenger</title>
 <style>
@@ -370,7 +370,8 @@ body{background:
 .bwrap.you .bub{background-color:var(--glass);background-image:var(--sheen);border:1px solid var(--glass-b);
   box-shadow:0 5px 14px var(--nm-d), inset 0 1px 0 var(--nm-l);border-bottom-left-radius:7px}
 /* Only the bubble itself should show: a solid themed edge, full corners and no dark outer lift. */
-.bwrap.you .bub{background:var(--bubble-you);border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}
+.bwrap.you .bub{background:var(--bubble-you);background-image:none;border:1.5px solid var(--a);border-radius:20px;box-shadow:none;filter:none}
+.bwrap.you.pressing .bub{box-shadow:none}
 .bwrap.me .bub{border-radius:20px;box-shadow:none}
 .bwrap{contain:layout}
 .avatar{border:1.5px solid var(--glass-b);outline:none;box-shadow:0 4px 12px var(--nm-d), inset 0 1px 0 var(--nm-l)}
@@ -990,24 +991,44 @@ async function unsealList(list,peer){
 }
 
 let _lcJob=null,_lcAt=0;
+// Cache is per authenticated account. The server remains authoritative; a failed
+// request must never be interpreted as an empty conversation list.
+const chatsCacheKey=()=>ME&&'chats.v2.'+ME.id;
+function persistChats(){
+ const key=chatsCacheKey();if(!key)return;
+ DB.set(key,{chats:(S.chats||[]).map(c=>({id:c.id,conv:c.conv,unread:c.unread,
+  msgs:(c.msgs||[]).filter(m=>!String(m.id).startsWith('tmp')).map(m=>({...m,src:/^(blob:|https?:)/.test(m.src||'')?'':m.src}))})),
+  people:[...DIR.values()].filter(p=>p.id!==ME.id).map(p=>({...p,photo:/^(blob:|https?:)/.test(p.photo||'')?'':p.photo}))});
+}
+function restoreChats(){
+ const saved=DB.get(chatsCacheKey(),null);if(!saved||!Array.isArray(saved.chats))return;
+ (saved.people||[]).forEach(p=>{if(p&&p.id){p.online=false;p.status='offline';DIR.set(p.id,p)}});
+ S.chats=saved.chats.filter(c=>c&&c.id&&Array.isArray(c.msgs));
+ S.chats.forEach(c=>c.msgs.forEach(m=>{if(m.path)resolveMedia(m).then(()=>{if(S.openChat===c.id)refreshUI()}).catch(()=>{})}));
+}
 function loadChats(force){
  // One in-flight refresh at a time; rapid taps reuse it instead of stacking work.
  if(_lcJob)return _lcJob;
  if(!force&&Date.now()-_lcAt<1200)return Promise.resolve();
- _lcJob=_loadChats().catch(()=>{}).then(()=>{_lcAt=Date.now();_lcJob=null});
+  _lcJob=_loadChats().catch(e=>{console.warn('Chat refresh deferred; retaining saved chats',e)}).then(()=>{_lcAt=Date.now();_lcJob=null});
  return _lcJob;
 }
 async function _loadChats(){
  if(!ME)return;
- const {data:mine}=await SB.from('conversation_participants').select('conversation_id,last_read_at').eq('user_id',ME.id);
+  if(!navigator.onLine)return;
+  const {data:mine,error:mineError}=await SB.from('conversation_participants').select('conversation_id,last_read_at').eq('user_id',ME.id);
+  if(mineError||!mine)throw mineError||new Error('Conversations unavailable');
  const convIds=(mine||[]).map(p=>p.conversation_id);
- if(!convIds.length){S.chats=[];return}
- const [{data:parts},{data:msgs},{data:reacts},{data:hides}]=await Promise.all([
+  if(!convIds.length){S.chats=[];persistChats();return}
+  const [partResult,msgResult,reactResult,hideResult]=await Promise.all([
   SB.from('conversation_participants').select('conversation_id,user_id').in('conversation_id',convIds),
   SB.from('messages').select('*').in('conversation_id',convIds).order('created_at',{ascending:false}).limit(600),
   SB.from('message_reactions').select('*').in('conversation_id',convIds),
   SB.from('message_hides').select('message_id').eq('user_id',ME.id)
  ]);
+  if(partResult.error||msgResult.error||reactResult.error||hideResult.error||!partResult.data||!msgResult.data)
+   throw partResult.error||msgResult.error||reactResult.error||hideResult.error||new Error('Messages unavailable');
+  const parts=partResult.data,msgs=msgResult.data,reacts=reactResult.data,hides=hideResult.data;
  const others=(parts||[]).filter(p=>p.user_id!==ME.id);
  await fetchProfiles(others.map(o=>o.user_id));
  const hidden=new Set((hides||[]).map(h=>h.message_id));
@@ -1029,6 +1050,7 @@ async function _loadChats(){
    else chats.push({id:o.user_id,conv:o.conversation_id,msgs:list,unread});
   }
   S.chats=chats;
+   persistChats();
   syncConvChannels();
 
 
@@ -1433,6 +1455,7 @@ async function bootSession(){
 
  await e2eInit();
  FILES.loadIndex();FILES.open();MEDIA.open();
+ restoreChats();
  if(ME.setupDone&&navigator.onLine)goLive();
  // Reconnect: refresh the profile once and bring the live layer up, without
  // touching the session or the rendered shell.
@@ -1687,7 +1710,7 @@ function seenText(p){
  if(!p)return '';
  if(S.prefs.pvOnline==='nobody'&&!(ME&&p.id===ME.id))return '';
   if(isOnline(p))return 'Online';
-   if(!p.lastSeen)return 'Last seen unavailable';
+    if(!p.lastSeen)return 'Last seen unavailable';
   const age=Date.now()-p.lastSeen;
   if(age<60000)return 'Last seen just now';
   if(age<3600000)return 'Last seen '+Math.floor(age/60000)+'m ago';
