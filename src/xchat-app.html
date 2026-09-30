@@ -995,14 +995,35 @@ let _lcJob=null,_lcAt=0;
 // Cache is per authenticated account. The server remains authoritative; a failed
 // request must never be interpreted as an empty conversation list.
 const chatsCacheKey=()=>ME&&'chats.v2.'+ME.id;
+ const CHATSTORE={
+  open(){return new Promise(resolve=>{
+   if(!('indexedDB' in window))return resolve(null);
+   try{const req=indexedDB.open('xchat-conversations',1);
+    req.onupgradeneeded=()=>req.result.createObjectStore('snapshots');
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>resolve(null);
+   }catch(e){resolve(null)}
+  })},
+  async run(key,value,mode){
+   const db=await this.open();if(!db)return null;
+   return new Promise(resolve=>{try{
+    const tx=db.transaction('snapshots',mode==='get'?'readonly':'readwrite');
+    const store=tx.objectStore('snapshots');const req=mode==='get'?store.get(key):mode==='delete'?store.delete(key):store.put(value,key);
+    req.onsuccess=()=>resolve(mode==='get'?req.result: true);req.onerror=()=>resolve(null);
+    tx.oncomplete=()=>db.close();
+   }catch(e){db.close();resolve(null)}});
+  }
+ };
 function persistChats(){
  const key=chatsCacheKey();if(!key)return;
- DB.set(key,{chats:(S.chats||[]).map(c=>({id:c.id,conv:c.conv,unread:c.unread,
+  const snapshot={chats:(S.chats||[]).map(c=>({id:c.id,conv:c.conv,unread:c.unread,
   msgs:(c.msgs||[]).filter(m=>!String(m.id).startsWith('tmp')).map(m=>({...m,src:''}))})),
-  people:[...DIR.values()].filter(p=>p.id!==ME.id).map(p=>({...p,photo:''}))});
+   people:[...DIR.values()].filter(p=>p.id!==ME.id).map(p=>({...p,photo:''}))};
+  CHATSTORE.run(key,snapshot,'put').then(ok=>{if(!ok)DB.set(key,snapshot)});
 }
-function restoreChats(){
- const saved=DB.get(chatsCacheKey(),null);if(!saved||!Array.isArray(saved.chats))return;
+ async function restoreChats(){
+  const key=chatsCacheKey();if(!key)return;
+  const saved=await CHATSTORE.run(key,null,'get')||DB.get(key,null);
+  if(!saved||!Array.isArray(saved.chats))return;
  (saved.people||[]).forEach(p=>{if(p&&p.id){p.online=false;p.status='offline';DIR.set(p.id,p)}});
  S.chats=saved.chats.filter(c=>c&&c.id&&Array.isArray(c.msgs));
  S.chats.forEach(c=>c.msgs.forEach(m=>{if(m.path)resolveMedia(m).then(()=>{if(S.openChat===c.id)refreshUI()}).catch(()=>{})}));
@@ -1456,7 +1477,7 @@ async function bootSession(){
  }
 
   FILES.loadIndex();FILES.open();MEDIA.open();
-  restoreChats();
+  await restoreChats();
   await e2eInit();
  if(ME.setupDone&&navigator.onLine)goLive();
  // Reconnect: refresh the profile once and bring the live layer up, without
@@ -1491,7 +1512,7 @@ async function signOutAll(){
   if(presenceCh){SB.removeChannel(presenceCh);presenceCh=null}
 
   presenceStarted=false;clearInterval(presenceBeat);clearInterval(idleTimer);endCall(false);
-  const cacheKey=chatsCacheKey();if(cacheKey)DB.del(cacheKey);
+  const cacheKey=chatsCacheKey();if(cacheKey){DB.del(cacheKey);await CHATSTORE.run(cacheKey,null,'delete')}
   await SB.auth.signOut();
  ME=null;S.user=null;S.chats=[];S.openChat=null;S.savedContacts=[];S.contactMatches=[];DIR.clear();
 }
