@@ -1,5 +1,6 @@
 {
   "name": "X-Chat",
+  "id": "/",
   "short_name": "X-Chat",
   "description": "Private, real-time messaging with voice notes, photos and read receipts.",
   "start_url": "/",
@@ -7,6 +8,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "lang": "en",
+  "categories": ["social", "communication"],
   "background_color": "#0b1017",
   "theme_color": "#0b1017",
   "icons": [

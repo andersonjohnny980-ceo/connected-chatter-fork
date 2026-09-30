@@ -46,6 +46,16 @@ jobs:
       - name: Copy the bundle into the Android project
         run: npx cap sync android
 
+      - name: Configure Firebase for Android push
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$FIREBASE_GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            echo 'Firebase configuration missing: Android background push will not work.'
+          fi
+
       - name: Build debug APK
         working-directory: android
         run: |

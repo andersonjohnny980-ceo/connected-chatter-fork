@@ -23,7 +23,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ request, url }) => request.mode === "navigate" && url.origin === self.location.origin && (url.pathname === "/" || url.pathname === "/app.html"),
+            urlPattern: ({ request, url }) => request.mode === "navigate" && url.origin === self.location.origin && (url.pathname === "/" || url.pathname === "/app.html") && !url.pathname.startsWith('/~oauth'),
             handler: "NetworkFirst",
             options: { cacheName: "xchat-public-shell", networkTimeoutSeconds: 4, expiration: { maxEntries: 2, maxAgeSeconds: 7 * 24 * 60 * 60 }, cacheableResponse: { statuses: [200] } },
           },
@@ -31,6 +31,11 @@ export default defineConfig({
             urlPattern: ({ request, url }) => url.origin === self.location.origin && request.destination === "script" && (url.pathname === "/lottie.min.js" || url.pathname === "/native-bridge.js" || url.pathname.startsWith("/vendor/")),
             handler: "StaleWhileRevalidate",
             options: { cacheName: "xchat-static-scripts", expiration: { maxEntries: 8, maxAgeSeconds: 7 * 24 * 60 * 60 }, cacheableResponse: { statuses: [200] } },
+          },
+          {
+            urlPattern: ({ request, url }) => url.origin === self.location.origin && request.destination === "script" && /\/assets\/[^/]+\.[a-f0-9]{8,}\.js$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: { cacheName: "xchat-versioned-assets", expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 }, cacheableResponse: { statuses: [200] } },
           },
         ],
       },

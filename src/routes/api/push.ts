@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { backendUrl, backendPublishableKey } from "@/lib/backend-config";
 
 /**
  * One push pipeline for X-Chat. The app calls this with the user's session;
@@ -65,8 +66,8 @@ export const Route = createFileRoute("/api/push")({
       POST: async ({ request }) => {
         const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
         if (!token) return json({ error: "unauthorized" }, 401);
-        const url = process.env["SUPABASE_URL"]!;
-        const pub = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+        const url = process.env["SUPABASE_URL"] || backendUrl;
+        const pub = process.env["SUPABASE_PUBLISHABLE_KEY"] || backendPublishableKey;
         const appId = process.env["ONESIGNAL_APP_ID"] || "";
         const osKey = process.env["ONESIGNAL_API_KEY"] || "";
         const sb = createClient<Database>(url, pub, {
