@@ -997,8 +997,8 @@ const chatsCacheKey=()=>ME&&'chats.v2.'+ME.id;
 function persistChats(){
  const key=chatsCacheKey();if(!key)return;
  DB.set(key,{chats:(S.chats||[]).map(c=>({id:c.id,conv:c.conv,unread:c.unread,
-  msgs:(c.msgs||[]).filter(m=>!String(m.id).startsWith('tmp')).map(m=>({...m,src:/^(blob:|https?:)/.test(m.src||'')?'':m.src}))})),
-  people:[...DIR.values()].filter(p=>p.id!==ME.id).map(p=>({...p,photo:/^(blob:|https?:)/.test(p.photo||'')?'':p.photo}))});
+  msgs:(c.msgs||[]).filter(m=>!String(m.id).startsWith('tmp')).map(m=>({...m,src:''}))})),
+  people:[...DIR.values()].filter(p=>p.id!==ME.id).map(p=>({...p,photo:''}))});
 }
 function restoreChats(){
  const saved=DB.get(chatsCacheKey(),null);if(!saved||!Array.isArray(saved.chats))return;
@@ -1135,6 +1135,7 @@ async function onMsgChange(payload){
   existing.deleted=mapped.deleted;
   if(mapped.deleted){existing.text='';existing.src='';existing.reacts={}}
  }
+ persistChats();
  refreshUI();
 }
 async function onReactChange(payload){
