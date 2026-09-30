@@ -2940,6 +2940,7 @@ function screenChat(){
    msg._sending=false;
    if(error){msg.st='failed';drawMsgs(true);toast(error.message);return}
   msg.id=data.id;msg.st=stOf(data);msg.t=new Date(data.created_at).getTime();
+  persistChats();
   drawMsgs(true);
   pushApi({action:'message',messageId:data.id});
  }
