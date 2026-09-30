@@ -862,7 +862,8 @@ async function cachePeople(rows){
 async function fetchProfiles(ids){
  ids=[...new Set((ids||[]).filter(Boolean))];
  if(!ids.length)return[];
- const {data}=await SB.rpc('profiles_public',{_ids:ids});
+ const {data,error}=await SB.rpc('profiles_public',{_ids:ids});
+ if(error)throw error;
  await cachePeople(data);return data||[];
 }
 async function searchProfiles(q){
@@ -1029,7 +1030,7 @@ async function _loadChats(){
   if(partResult.error||msgResult.error||reactResult.error||hideResult.error||!partResult.data||!msgResult.data)
    throw partResult.error||msgResult.error||reactResult.error||hideResult.error||new Error('Messages unavailable');
   const parts=partResult.data,msgs=msgResult.data,reacts=reactResult.data,hides=hideResult.data;
- const others=(parts||[]).filter(p=>p.user_id!==ME.id);
+  const others=(parts||[]).filter(p=>p.user_id!==ME.id);
  await fetchProfiles(others.map(o=>o.user_id));
  const hidden=new Set((hides||[]).map(h=>h.message_id));
  const chats=[];
@@ -1454,9 +1455,9 @@ async function bootSession(){
   S.user=ME;DIR.set(ME.id,ME);
  }
 
- await e2eInit();
- FILES.loadIndex();FILES.open();MEDIA.open();
- restoreChats();
+  FILES.loadIndex();FILES.open();MEDIA.open();
+  restoreChats();
+  await e2eInit();
  if(ME.setupDone&&navigator.onLine)goLive();
  // Reconnect: refresh the profile once and bring the live layer up, without
  // touching the session or the rendered shell.
@@ -1490,7 +1491,8 @@ async function signOutAll(){
   if(presenceCh){SB.removeChannel(presenceCh);presenceCh=null}
 
   presenceStarted=false;clearInterval(presenceBeat);clearInterval(idleTimer);endCall(false);
- await SB.auth.signOut();
+  const cacheKey=chatsCacheKey();if(cacheKey)DB.del(cacheKey);
+  await SB.auth.signOut();
  ME=null;S.user=null;S.chats=[];S.openChat=null;S.savedContacts=[];S.contactMatches=[];DIR.clear();
 }
 
@@ -1709,10 +1711,10 @@ function isOnline(p){
 }
 function seenText(p){
  if(!p)return '';
- if(S.prefs.pvOnline==='nobody'&&!(ME&&p.id===ME.id))return '';
-  if(isOnline(p))return 'Online';
-    if(!p.lastSeen)return 'Last seen unavailable';
-  const age=Date.now()-p.lastSeen;
+ // profiles_public already applies each contact's own visibility setting.
+ if(isOnline(p))return 'Online';
+ if(!p.lastSeen)return 'Last seen unavailable';
+ const age=Date.now()-p.lastSeen;
   if(age<60000)return 'Last seen just now';
   if(age<3600000)return 'Last seen '+Math.floor(age/60000)+'m ago';
   if(age<86400000)return 'Last seen '+Math.floor(age/3600000)+'h ago';
