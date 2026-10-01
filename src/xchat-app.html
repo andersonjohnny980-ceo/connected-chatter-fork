@@ -1397,7 +1397,7 @@ const PUSH_API=(()=>{
  const cfg=window.__XCHAT_CONFIG__||{};
  if(cfg.api)return cfg.api;
  const nativeHost=location.hostname==='localhost'&&!location.port;
- return (/^https?:$/.test(location.protocol)&&!nativeHost)?'':'https://id-preview--4b7f3214-ce9a-409e-a0cc-dda7ac9e16c3.lovable.app';
+ return (/^https?:$/.test(location.protocol)&&!nativeHost)?'':'https://connected-chatter.lovable.app';
 })();
 async function pushApi(body){
  try{
@@ -2677,7 +2677,7 @@ function screenChat(){
   <div class="composer">
     <div class="comp-inset inset">
       <button class="press" id="emo" style="padding:9px 0" aria-label="Emoji">${I.emoji}</button>
-      <textarea id="ta" rows="1" placeholder="${t('chat.msg')}"></textarea>
+      <textarea id="ta" rows="1" placeholder="${t('chat.msg')}" autocomplete="on" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" inputmode="text"></textarea>
       <button class="press" id="clip" style="padding:9px 0" aria-label="Attach">${I.clip}</button>
       <button class="press" id="cam" style="padding:9px 0" aria-label="Camera">${I.cam}</button>
     </div>
