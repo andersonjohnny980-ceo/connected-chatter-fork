@@ -3406,8 +3406,9 @@ window.addEventListener('xchat-open-chat',e=>{
  if(id&&ME&&(S.chats||[]).some(c=>c.id===id)){try{openChat(id)}catch(_){}}
 });
 SB.auth.onAuthStateChange((event)=>{
+ // Only a deliberate sign-out clears the device; token refreshes never do.
  if(event==='SIGNED_OUT'){ME=null;S.user=null;S.chats=[];S.openChat=null;E2E.keys.clear();
-  DB.del(ME_CACHE);goLive._on=false;render()}
+  DB.del(ME_CACHE);DB.del(AUTH_UID);DB.del('auth.email');goLive._on=false;render()}
 });
 document.addEventListener('visibilitychange',async()=>{
  // Coming back from the background must never block on the network.
