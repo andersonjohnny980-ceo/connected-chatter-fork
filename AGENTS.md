@@ -12,3 +12,4 @@
 - Preserve X-Chat's imported `/app.html` shell and existing external backend; replacing it would disconnect real conversations.
 - Serve public backend configuration from a source-controlled publishable configuration module, never commit private OneSignal credentials.
 - Maintain one generated app-shell worker at `/sw.js` and a separate OneSignal worker scope to avoid push/cache interception conflicts.
+- Store authenticated conversation snapshots per account in IndexedDB with localStorage fallback; this keeps prior chats available offline without treating network failures as empty results.
