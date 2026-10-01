@@ -373,6 +373,7 @@ body{background:
 .bwrap.you .bub{background:var(--bubble-you);background-image:none;border:1.5px solid var(--a);border-radius:20px;box-shadow:none;filter:none}
 .bwrap.you.pressing .bub{box-shadow:none}
 .bwrap.me .bub{border-radius:20px;box-shadow:none}
+.bwrap.you.pressing .bub{filter:none;box-shadow:none}
 .bwrap{contain:layout}
 .avatar{border:1.5px solid var(--glass-b);outline:none;box-shadow:0 4px 12px var(--nm-d), inset 0 1px 0 var(--nm-l)}
 .sheet{border-radius:26px 26px 0 0;box-shadow:0 -12px 40px var(--nm-d), inset 0 1px 0 var(--nm-l)}
@@ -1301,7 +1302,8 @@ function applyPresence(){
   if(ME&&p.id===ME.id)return;
   const live=PRESENCE.get(p.id);
   const fresh=p.lastSeen&&now-p.lastSeen<70000;
-  const on=live?live.status==='online'&&!!fresh:!!(p.online&&fresh);
+   const liveFresh=live&&live.at&&now-new Date(live.at).getTime()<70000;
+   const on=live?live.status==='online'&&!!liveFresh:!!(p.online&&fresh);
   p.status=on?'online':'offline';p.online=on;
  });
  if(ME){ME.status=myPresence==='online'?'online':'offline';ME.online=ME.status==='online'}
@@ -1727,7 +1729,7 @@ function isOnline(p){
  if(!p)return false;
  if(ME&&p.id===ME.id)return myPresence==='online';
  const live=PRESENCE.get(p.id);
-  if(live)return live.status==='online'&&!!(p.lastSeen&&Date.now()-p.lastSeen<70000);
+   if(live)return live.status==='online'&&!!(live.at&&Date.now()-new Date(live.at).getTime()<70000);
  return !!(p.online&&p.lastSeen&&Date.now()-p.lastSeen<70000);
 }
 function seenText(p){
