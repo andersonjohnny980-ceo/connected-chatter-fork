@@ -1460,14 +1460,40 @@ async function goLive(){
    startPush();startWebPush();
  }catch(e){goLive._on=false;console.warn('live start deferred',e)}
 }
+const AUTH_UID='auth.uid';
+/* The stored token is the only proof of sign-in that survives a cold launch.
+   Reading it directly means an expired access token with no connection to
+   refresh it can never be mistaken for "signed out". */
+function storedAuthUser(){
+ try{
+  const raw=localStorage.getItem('xchat-auth');
+  if(!raw)return null;
+  const s=JSON.parse(raw);
+  const u=(s&&s.user)||(s&&s.currentSession&&s.currentSession.user)||null;
+  if(u&&u.id)return u;
+  if(s&&s.refresh_token&&DB.get(AUTH_UID,null))return {id:DB.get(AUTH_UID,null),email:DB.get('auth.email','')};
+  return null;
+ }catch(e){return null}
+}
 async function bootSession(){
  // getSession() reads the persisted token locally — it never waits on the network.
- const {data:{session}}=await SB.auth.getSession();
- const user=session&&session.user;
- if(!user){ME=null;S.user=null;DB.del(ME_CACHE);return false}
+ let session=null;
+ try{({data:{session}}=await SB.auth.getSession())}catch(e){console.warn('session read deferred',e)}
+ let user=session&&session.user;
+ // Offline, or the refresh call could not reach the server: fall back to the
+ // token already on this device instead of forcing a new sign-in.
+ if(!user)user=storedAuthUser();
+ if(!user){
+  // Genuinely signed out only when no token remains on the device.
+  if(!localStorage.getItem('xchat-auth')){ME=null;S.user=null;DB.del(ME_CACHE);DB.del(AUTH_UID);return false}
+  ME=null;S.user=null;return false;
+ }
+ DB.set(AUTH_UID,user.id);
+ if(user.email)DB.set('auth.email',user.email);
 
  const cached=meFromCache(user.id);
  if(cached){ME={...cached,online:false,status:'offline'};S.user=ME;DIR.set(ME.id,ME)}
+
 
  let fresh=false;
  if(navigator.onLine){
