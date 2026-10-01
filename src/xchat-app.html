@@ -3307,13 +3307,24 @@ function emojiSheet(cb){
 applyTheme();
 Net.init();
 
-/* ---- animated splash: shows on open, fades out into the live app ---- */
-const SPLASH={el:document.getElementById('splash'),done:false,start:Date.now()};
+/* ---- animated splash: shows on open, fades out into the live app ----
+   The native launch window hands over the instant this element is painted, so
+   the icon tap goes straight to branding — never to an empty dark rectangle. */
+const SPLASH={el:document.getElementById('splash'),done:false,start:Date.now(),uiReady:false};
 function hideSplash(){
  if(!SPLASH.el||SPLASH.done)return;SPLASH.done=true;
  SPLASH.el.classList.add('gone');
  setTimeout(()=>{try{SPLASH.el.remove()}catch(_){}},420);
 }
+function nativeHandover(){
+ if(nativeHandover._sent)return;nativeHandover._sent=true;
+ try{window.dispatchEvent(new Event('xchat-ui-ready'))}catch(_){}
+}
+// The branded splash is already on screen at this point: release the native
+// launch window immediately instead of waiting for the session to boot.
+requestAnimationFrame(()=>requestAnimationFrame(nativeHandover));
+setTimeout(nativeHandover,400);
+
 (function playSplash(){
  if(!SPLASH.el)return;
  const fb=()=>SPLASH.el.classList.add('fallback');
@@ -3324,7 +3335,8 @@ function hideSplash(){
     renderer:'svg',loop:false,autoplay:true,path:'/splash.json',
     rendererSettings:{preserveAspectRatio:'xMidYMid slice'}});
    anim.addEventListener('data_failed',fb);
-   anim.addEventListener('complete',hideSplash);
+   anim.addEventListener('DOMLoaded',()=>{if(!SPLASH.done)SPLASH.el.classList.add('anim-ready')});
+   anim.addEventListener('complete',()=>{if(SPLASH.uiReady)hideSplash();else SPLASH._animDone=true});
   }catch(e){fb()}
  };
  if(window.lottie)go();else window.addEventListener('load',()=>setTimeout(go,0),{once:true});
@@ -3335,11 +3347,12 @@ function hideSplash(){
 (async()=>{
  try{await bootSession()}catch(e){console.error(e)}
  render();
- // The native splash stays up until the first real frame is on screen, so the
- // app never flashes a blank white page on launch.
- requestAnimationFrame(()=>requestAnimationFrame(()=>{
-  try{window.dispatchEvent(new Event('xchat-ui-ready'))}catch(_){}
- }));
+ SPLASH.uiReady=true;
+ nativeHandover();
+ // Leave the splash just long enough to feel intentional, then fade into the
+ // live app. No blank frame can appear because the app is already rendered.
+ if(SPLASH._animDone)hideSplash();
+ else setTimeout(hideSplash,Math.max(0,900-(Date.now()-SPLASH.start)));
  initNotifications();
 })();
 
