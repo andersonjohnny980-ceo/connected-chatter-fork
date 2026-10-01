@@ -1,4 +1,7 @@
-- [ ] Import the existing X-Chat app source and retain its original backend connection without copying private credentials.
-- [ ] Correct offline chat retention, last-seen presentation, and message bubble appearance.
-- [ ] Make the web app installable and safely offline-capable for PWABuilder, Median, and future Android builds.
-- [ ] Wire secure OneSignal settings and verify what can be tested locally; identify external deployment blockers.
+- [x] Import the existing X-Chat app source and retain its original backend connection without copying private credentials.
+- [x] Correct offline chat retention, last-seen presentation, and message bubble appearance in source and browser checks.
+- [x] Make the web app installable and safely offline-capable for PWABuilder, Median, and future Android builds.
+- [x] Wire secure OneSignal settings and verify available local/public install checks.
+- [ ] Verify signed-in chat persistence and notifications end to end — blocked by no session for the external backend or a second notification-capable device.
+- [ ] Release changes to the published address and re-run PWABuilder — blocked until the owner publishes the frontend update.
+- [ ] Enable Android background push in GitHub builds — blocked until the owner supplies the Firebase Android configuration as the GitHub secret.
