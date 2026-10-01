@@ -111,10 +111,14 @@ h1,h2,h3{margin:0}
 #splash{position:fixed;inset:0;z-index:9999;background:#f8f9fa;display:grid;place-items:center;overflow:hidden;
   transition:opacity .38s var(--ease)}
 #splash.gone{opacity:0;pointer-events:none}
-#splash .anim{width:100%;height:100%}
-#splash .fb{display:none;flex-direction:column;align-items:center;gap:18px}
+/* The brand mark paints on the very first frame; the animation fades in on top
+   of it once it is ready, so the launch never shows an empty rectangle. */
+#splash .anim{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .25s var(--ease)}
+#splash.anim-ready .anim{opacity:1}
+#splash .fb{display:flex;flex-direction:column;align-items:center;gap:18px}
+#splash.anim-ready .fb{opacity:0;transition:opacity .25s var(--ease)}
 #splash.fallback .anim{display:none}
-#splash.fallback .fb{display:flex;animation:fadeUp .4s var(--ease) both}
+#splash.fallback .fb{display:flex;opacity:1}
 #splash .fb span{font-size:17px;font-weight:800;color:#0b3d91;letter-spacing:.4px}
 
 @keyframes brandFade{0%,18%{opacity:0;transform:translateY(8px)}32%,72%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
@@ -1397,7 +1401,7 @@ const PUSH_API=(()=>{
  const cfg=window.__XCHAT_CONFIG__||{};
  if(cfg.api)return cfg.api;
  const nativeHost=location.hostname==='localhost'&&!location.port;
- return (/^https?:$/.test(location.protocol)&&!nativeHost)?'':'https://id-preview--4b7f3214-ce9a-409e-a0cc-dda7ac9e16c3.lovable.app';
+ return (/^https?:$/.test(location.protocol)&&!nativeHost)?'':'https://connected-chatter.lovable.app';
 })();
 async function pushApi(body){
  try{
@@ -1456,14 +1460,40 @@ async function goLive(){
    startPush();startWebPush();
  }catch(e){goLive._on=false;console.warn('live start deferred',e)}
 }
+const AUTH_UID='auth.uid';
+/* The stored token is the only proof of sign-in that survives a cold launch.
+   Reading it directly means an expired access token with no connection to
+   refresh it can never be mistaken for "signed out". */
+function storedAuthUser(){
+ try{
+  const raw=localStorage.getItem('xchat-auth');
+  if(!raw)return null;
+  const s=JSON.parse(raw);
+  const u=(s&&s.user)||(s&&s.currentSession&&s.currentSession.user)||null;
+  if(u&&u.id)return u;
+  if(s&&s.refresh_token&&DB.get(AUTH_UID,null))return {id:DB.get(AUTH_UID,null),email:DB.get('auth.email','')};
+  return null;
+ }catch(e){return null}
+}
 async function bootSession(){
  // getSession() reads the persisted token locally — it never waits on the network.
- const {data:{session}}=await SB.auth.getSession();
- const user=session&&session.user;
- if(!user){ME=null;S.user=null;DB.del(ME_CACHE);return false}
+ let session=null;
+ try{({data:{session}}=await SB.auth.getSession())}catch(e){console.warn('session read deferred',e)}
+ let user=session&&session.user;
+ // Offline, or the refresh call could not reach the server: fall back to the
+ // token already on this device instead of forcing a new sign-in.
+ if(!user)user=storedAuthUser();
+ if(!user){
+  // Genuinely signed out only when no token remains on the device.
+  if(!localStorage.getItem('xchat-auth')){ME=null;S.user=null;DB.del(ME_CACHE);DB.del(AUTH_UID);return false}
+  ME=null;S.user=null;return false;
+ }
+ DB.set(AUTH_UID,user.id);
+ if(user.email)DB.set('auth.email',user.email);
 
  const cached=meFromCache(user.id);
  if(cached){ME={...cached,online:false,status:'offline'};S.user=ME;DIR.set(ME.id,ME)}
+
 
  let fresh=false;
  if(navigator.onLine){
@@ -2677,7 +2707,7 @@ function screenChat(){
   <div class="composer">
     <div class="comp-inset inset">
       <button class="press" id="emo" style="padding:9px 0" aria-label="Emoji">${I.emoji}</button>
-      <textarea id="ta" rows="1" placeholder="${t('chat.msg')}"></textarea>
+      <textarea id="ta" rows="1" placeholder="${t('chat.msg')}" autocomplete="on" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send" inputmode="text"></textarea>
       <button class="press" id="clip" style="padding:9px 0" aria-label="Attach">${I.clip}</button>
       <button class="press" id="cam" style="padding:9px 0" aria-label="Camera">${I.cam}</button>
     </div>
@@ -3303,13 +3333,24 @@ function emojiSheet(cb){
 applyTheme();
 Net.init();
 
-/* ---- animated splash: shows on open, fades out into the live app ---- */
-const SPLASH={el:document.getElementById('splash'),done:false,start:Date.now()};
+/* ---- animated splash: shows on open, fades out into the live app ----
+   The native launch window hands over the instant this element is painted, so
+   the icon tap goes straight to branding — never to an empty dark rectangle. */
+const SPLASH={el:document.getElementById('splash'),done:false,start:Date.now(),uiReady:false};
 function hideSplash(){
  if(!SPLASH.el||SPLASH.done)return;SPLASH.done=true;
  SPLASH.el.classList.add('gone');
  setTimeout(()=>{try{SPLASH.el.remove()}catch(_){}},420);
 }
+function nativeHandover(){
+ if(nativeHandover._sent)return;nativeHandover._sent=true;
+ try{window.dispatchEvent(new Event('xchat-ui-ready'))}catch(_){}
+}
+// The branded splash is already on screen at this point: release the native
+// launch window immediately instead of waiting for the session to boot.
+requestAnimationFrame(()=>requestAnimationFrame(nativeHandover));
+setTimeout(nativeHandover,400);
+
 (function playSplash(){
  if(!SPLASH.el)return;
  const fb=()=>SPLASH.el.classList.add('fallback');
@@ -3320,7 +3361,8 @@ function hideSplash(){
     renderer:'svg',loop:false,autoplay:true,path:'/splash.json',
     rendererSettings:{preserveAspectRatio:'xMidYMid slice'}});
    anim.addEventListener('data_failed',fb);
-   anim.addEventListener('complete',hideSplash);
+   anim.addEventListener('DOMLoaded',()=>{if(!SPLASH.done)SPLASH.el.classList.add('anim-ready')});
+   anim.addEventListener('complete',()=>{if(SPLASH.uiReady)hideSplash();else SPLASH._animDone=true});
   }catch(e){fb()}
  };
  if(window.lottie)go();else window.addEventListener('load',()=>setTimeout(go,0),{once:true});
@@ -3331,11 +3373,12 @@ function hideSplash(){
 (async()=>{
  try{await bootSession()}catch(e){console.error(e)}
  render();
- // The native splash stays up until the first real frame is on screen, so the
- // app never flashes a blank white page on launch.
- requestAnimationFrame(()=>requestAnimationFrame(()=>{
-  try{window.dispatchEvent(new Event('xchat-ui-ready'))}catch(_){}
- }));
+ SPLASH.uiReady=true;
+ nativeHandover();
+ // Leave the splash just long enough to feel intentional, then fade into the
+ // live app. No blank frame can appear because the app is already rendered.
+ if(SPLASH._animDone)hideSplash();
+ else setTimeout(hideSplash,Math.max(0,900-(Date.now()-SPLASH.start)));
  initNotifications();
 })();
 
@@ -3363,8 +3406,9 @@ window.addEventListener('xchat-open-chat',e=>{
  if(id&&ME&&(S.chats||[]).some(c=>c.id===id)){try{openChat(id)}catch(_){}}
 });
 SB.auth.onAuthStateChange((event)=>{
+ // Only a deliberate sign-out clears the device; token refreshes never do.
  if(event==='SIGNED_OUT'){ME=null;S.user=null;S.chats=[];S.openChat=null;E2E.keys.clear();
-  DB.del(ME_CACHE);goLive._on=false;render()}
+  DB.del(ME_CACHE);DB.del(AUTH_UID);DB.del('auth.email');goLive._on=false;render()}
 });
 document.addEventListener('visibilitychange',async()=>{
  // Coming back from the background must never block on the network.

@@ -3,4 +3,6 @@
     <color name="colorPrimary">#2F7CF6</color>
     <color name="colorPrimaryDark">#0B1017</color>
     <color name="colorAccent">#2F7CF6</color>
+    <!-- Launch background: identical to the in-app splash so there is no dark flash. -->
+    <color name="splashBackground">#F8F9FA</color>
 </resources>

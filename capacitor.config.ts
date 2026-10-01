@@ -11,8 +11,11 @@ const config: CapacitorConfig = {
   webDir: "mobile/www",
   android: {
     allowMixedContent: false,
-    captureInput: true,
+    // captureInput must stay off: it blocks the Android keyboard's own
+    // autocorrect, word prediction and suggestion strip inside the web view.
+    captureInput: false,
     webContentsDebuggingEnabled: false,
+    backgroundColor: "#f8f9fa",
   },
   server: {
     androidScheme: "https",
@@ -20,8 +23,12 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: "#0b1017",
+      launchShowDuration: 0,
+      backgroundColor: "#f8f9fa",
       androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      splashImmersive: false,
+      splashFullScreen: false,
       showSpinner: false,
     },
     LocalNotifications: {
