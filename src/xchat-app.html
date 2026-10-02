@@ -2490,11 +2490,12 @@ function notifSheet(){
   <button class="btn ghost" id="test" style="margin-top:14px">Send a test notification</button></div>`);
  wireToggles(s);
   s.q('#test').onclick=async()=>{
-   if(!('Notification'in window))return toast('Notifications are not supported here.');
+   if(!notifySupported())return toast('Add X-Chat to your home screen to receive notifications on this device.',3200);
    const ok=await askNotifications(false);
-   if(!ok)return toast('Notification permission denied.');
+   if(!ok)return toast('Notifications are blocked. Allow them for X-Chat in your phone or browser settings.',3400);
    const sent=await showNotify('X-Chat',S.prefs.preview?'Amara: Hey! 👋':'New message','xchat-test');
    if(!sent)return toast('Could not show the notification.');
+   toast('Test notification sent');
    buzz(20);
   };
 }
