@@ -1260,34 +1260,48 @@ async function initNotifications(){
    try{swReg=await navigator.serviceWorker.getRegistration('/')}catch(e){}
  }
 }
+/* Android web views have no window.Notification, so the installed app always
+   goes through the phone's own notification system first. */
+const hasNativeNotify=()=>!!(window.XChatNative&&typeof window.XChatNative.notify==='function');
+const hasWebNotify=()=>('Notification' in window);
+function notifySupported(){return hasNativeNotify()||hasWebNotify()}
 async function askNotifications(silent){
- if(!('Notification' in window))return false;
+ if(hasNativeNotify()){
+  try{
+   if(typeof window.XChatNative.requestNotifications==='function'){
+    const ok=await window.XChatNative.requestNotifications();
+    return !(ok===false||ok==='denied');
+   }
+   return true;
+  }catch(e){return false}
+ }
+ if(!hasWebNotify())return false;
  if(Notification.permission==='granted')return true;
  if(Notification.permission==='denied')return false;
  if(silent&&notifAsked)return false;
  notifAsked=true;
- try{
-  if(window.XChatNative&&typeof window.XChatNative.requestNotifications==='function'){
-   const ok=await window.XChatNative.requestNotifications();
-   if(ok===false||ok==='denied')return false;
-  }
-  return (await Notification.requestPermission())==='granted';
- }catch(e){return false}
+ try{return (await Notification.requestPermission())==='granted'}catch(e){return false}
 }
 async function showNotify(title,body,tag,data){
- if(!('Notification' in window)||Notification.permission!=='granted')return false;
+ if(hasNativeNotify()){
+  try{window.XChatNative.notify(title,body,(data&&data.chatId)||'');return true}catch(e){}
+ }
+ if(!hasWebNotify()||Notification.permission!=='granted')return false;
  const opts={body,tag:tag||'xchat',renotify:true,icon:'/icons/xchat-192.png',badge:'/icons/xchat-192.png',
   silent:!S.prefs.sounds,data:Object.assign({url:'/'},data||{})};
  try{
-   if(!swReg&&'serviceWorker' in navigator){try{swReg=await navigator.serviceWorker.getRegistration('/')}catch(e){}}
+   if(!swReg&&'serviceWorker' in navigator){try{swReg=await navigator.serviceWorker.getRegistration()}catch(e){}}
+   if(!swReg&&'serviceWorker' in navigator){try{swReg=await Promise.race([navigator.serviceWorker.ready,new Promise(r=>setTimeout(()=>r(null),1500))])}catch(e){}}
   if(swReg&&swReg.showNotification){
    // One live notification per chat: replace the previous one for this tag.
-   const open=await swReg.getNotifications({tag:opts.tag});open.forEach(n=>n.close());
+   try{const open=await swReg.getNotifications({tag:opts.tag});open.forEach(n=>n.close())}catch(e){}
    await swReg.showNotification(title,opts);
    return true;
   }
   new Notification(title,opts);return true;
- }catch(e){return false}
+ }catch(e){
+  try{new Notification(title,{body});return true}catch(_){return false}
+ }
 }
 function notifyIncoming(chat,msg){
  const who=person(chat.id);
