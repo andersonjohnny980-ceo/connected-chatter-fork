@@ -164,6 +164,12 @@
     PN.addListener('pushNotificationActionPerformed', function (ev) {
       openFromPayload(ev && ev.notification && ev.notification.data);
     });
+    // High-importance channel with sound + vibration. Closed-app pushes land
+    // here too (it is the manifest default), so phones on vibrate still buzz.
+    var CH = { id: 'xchat_messages', name: 'Messages', description: 'New chat messages',
+      importance: 5, visibility: 1, vibration: true, lights: true, lightColor: '#2F7CF6', sound: 'default' };
+    PN.createChannel(CH).catch(function () {});
+    if (P.LocalNotifications && P.LocalNotifications.createChannel) P.LocalNotifications.createChannel(CH).catch(function () {});
     window.XChatNative.registerPush = function () {
       return PN.checkPermissions()
         .then(function (r) {
@@ -186,8 +192,9 @@
   function hideSplash() {
     if (splashGone) return;
     splashGone = true;
-    if (P.SplashScreen) P.SplashScreen.hide({ fadeOutDuration: 200 }).catch(function () {});
+    if (P.SplashScreen) P.SplashScreen.hide({ fadeOutDuration: 0 }).catch(function () {});
   }
+  hideSplash(); // X-Chat's own animated splash is already in the page
   window.addEventListener('xchat-ui-ready', hideSplash);
   function whenPainted() {
     requestAnimationFrame(function () { requestAnimationFrame(hideSplash); });

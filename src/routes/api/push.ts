@@ -53,6 +53,9 @@ async function sendPush(
       idempotency_key: idem,
       android_group: data["chatId"] || "xchat",
       priority: 10,
+      existing_android_channel_id: "xchat_messages",
+      android_visibility: 1,
+      android_sound: "default",
       ttl: data["type"] === "call" ? 45 : 86400,
     }),
   });
@@ -100,8 +103,21 @@ export const Route = createFileRoute("/api/push")({
               subscriptions: [{ type: "AndroidPush", token: input.token, enabled: true }],
             }),
           });
-          if (!res.ok) console.warn("push register failed", res.status);
-          return json({ ok: res.ok });
+          let ok = res.ok;
+          if (!ok) {
+            // User already exists: add this phone as a subscription instead.
+            const r2 = await fetch(
+              `https://api.onesignal.com/apps/${appId}/users/by/external_id/${me}/subscriptions`,
+              {
+                method: "POST",
+                headers: { "content-type": "application/json", Authorization: osAuth(osKey) },
+                body: JSON.stringify({ subscription: { type: "AndroidPush", token: input.token, enabled: true } }),
+              },
+            );
+            ok = r2.ok || r2.status === 409;
+            if (!ok) console.warn("push register failed", res.status, r2.status, (await r2.text()).slice(0, 200));
+          }
+          return json({ ok });
         }
 
         if (input.action === "message") {
