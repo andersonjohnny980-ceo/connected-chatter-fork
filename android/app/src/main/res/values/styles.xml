@@ -9,22 +9,18 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <!-- The window keeps the splash colour underneath the web view, so the very
-         first frames can never show a black/blank rectangle. -->
+    <!-- Main App Theme -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:background">@color/splashBackground</item>
-        <item name="android:windowBackground">@color/splashBackground</item>
     </style>
 
-    <!-- Launch theme: the system draws this the instant the icon is tapped. -->
+    <!-- Launch theme: Splash screen icon and background removed -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/splashBackground</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_blank</item>
+        <item name="windowSplashScreenBackground">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@null</item>
         <item name="windowSplashScreenAnimationDuration">0</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
-        <item name="android:background">@color/splashBackground</item>
-        <item name="android:windowBackground">@color/splashBackground</item>
     </style>
+
 </resources>
