@@ -56,6 +56,7 @@
             body: String(body || 'New message'),
             smallIcon: 'ic_stat_icon',
             group: 'xchat',
+            channelId: 'xchat_messages',
             extra: { chatId: chatId || '' }
           }]
         }).catch(function () {});
