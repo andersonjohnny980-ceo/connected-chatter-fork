@@ -33,6 +33,8 @@ export const Route = createFileRoute("/")({
     links: [
       { rel: "manifest", href: "/manifest.webmanifest", type: "application/manifest+json" },
       { rel: "apple-touch-icon", href: "/icons/xchat-192.png" },
+      { rel: "canonical", href: "https://connected-chatter.lovable.app/" },
+      { rel: "preload", href: "/app.html", as: "document" },
     ],
   }),
   component: Index,
@@ -41,13 +43,15 @@ export const Route = createFileRoute("/")({
 function Index() {
   useEffect(() => { void registerAppShellWorker(); }, []);
   return (
-    <main className="h-dvh w-full overflow-hidden">
+    // Same light tone as the in-app splash so opening never shows a dark gap.
+    <main className="h-dvh w-full overflow-hidden" style={{ background: "#f8f9fa" }}>
       <h1 className="sr-only">X-Chat Messenger</h1>
       <iframe
         src="/app.html"
         title="XChat Messenger"
         className="h-full w-full border-0"
-        allow="microphone *; camera *; autoplay *; display-capture *; clipboard-write; fullscreen"
+        style={{ background: "#f8f9fa" }}
+        allow="microphone *; camera *; autoplay *; display-capture *; clipboard-write; fullscreen; notifications *"
         allowFullScreen
       />
     </main>
