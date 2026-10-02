@@ -1605,6 +1605,16 @@ const Net={
    if(auto)setTimeout(()=>{if(this.el===d){d.style.transition='opacity .3s';d.style.opacity=0;setTimeout(()=>d.remove(),320);this.el=null}},2600);
  },
  clear(){if(this.el){this.el.remove();this.el=null}},
+ /* While offline the notice pops up, fades away, and comes back every
+    10–15 seconds so people always know their connection is still down. */
+ remindTO:null,
+ remind(){
+   clearTimeout(this.remindTO);
+   if(this.online)return;
+   this.show('off',t('net.off'),true);
+   this.remindTO=setTimeout(()=>this.remind(),10000+Math.random()*5000);
+ },
+ stopRemind(){clearTimeout(this.remindTO);this.remindTO=null},
  subs:new Set(),
  /* Anything that must pause/resume with connectivity subscribes here, so the
     whole app shares one source of truth instead of per-screen checks. */
@@ -1613,8 +1623,8 @@ const Net={
    online=!!online;
    if(this.online===online)return;
    this.online=online;
-   if(online){this.clear();this.show('on',t('net.on'))}
-   else this.show('off',t('net.off'),false);
+   if(online){this.stopRemind();this.clear();this.show('on',t('net.on'))}
+   else this.remind();
    this.subs.forEach(fn=>{try{fn(online)}catch(e){console.warn('net sub',e)}});
  },
  waitOnline(){
@@ -1628,7 +1638,7 @@ const Net={
    window.XChatNetwork={setOnline:on=>Net.set(on)};
    const c=navigator.connection;
    if(c){const chk=()=>{if(this.online&&/2g|slow/.test(c.effectiveType||''))this.show('slow',t('net.slow'))};c.addEventListener&&c.addEventListener('change',chk);chk()}
-   if(!navigator.onLine)this.show('off',t('net.off'),false);
+   if(!navigator.onLine){this.online=false;this.remind()}
  }
 };
 
